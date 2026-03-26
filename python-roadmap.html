@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pre-LLM Foundations</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,600;0,900;1,300;1,600&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #faf8f4;
+    --surface: #f2ede4;
+    --card: #ffffff;
+    --border: #e0d8cc;
+    --ink: #1a1612;
+    --ink2: #4a4540;
+    --muted: #9a9088;
+    --accent: #c4472a;
+    --accent2: #2a7ac4;
+    --accent3: #2aa85e;
+    --accent4: #b5860d;
+    --accent5: #7a2ac4;
+    --tag-bg: #f0ebe2;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+  }
+
+  /* Paper texture overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23noise)' opacity='0.025'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  .page { max-width: 960px; margin: 0 auto; padding: 56px 24px 80px; position: relative; z-index: 1; }
+
+  /* Header */
+  .eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 24px;
+  }
+  .eyebrow::before, .eyebrow::after { content: '—'; }
+
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(36px, 6vw, 64px);
+    font-weight: 900;
+    line-height: 1.0;
+    letter-spacing: -2px;
+    margin-bottom: 8px;
+    color: var(--ink);
+  }
+  h1 em { font-style: italic; color: var(--accent); }
+
+  .subtitle {
+    font-size: 12px;
+    color: var(--ink2);
+    line-height: 1.8;
+    max-width: 560px;
+    margin-bottom: 40px;
+    border-left: 3px solid var(--accent);
+    padding-left: 16px;
+    margin-top: 20px;
+  }
+
+  /* Skill level bar */
+  .level-check {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 52px;
+    padding: 20px 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+  }
+  .level-item { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--ink2); }
+  .level-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .l-have { background: var(--accent3); }
+  .l-build { background: var(--accent); }
+  .l-touch { background: var(--muted); }
+
+  /* Category navigation */
+  .cat-nav {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 36px;
+    flex-wrap: wrap;
+  }
+  .cat-btn {
+    padding: 8px 16px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .cat-btn:hover { background: var(--surface); color: var(--ink2); }
+  .cat-btn.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+  /* Content sections */
+  .section { display: none; }
+  .section.active { display: block; animation: slideUp 0.25s ease; }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Section header */
+  .sec-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid var(--border);
+  }
+  .sec-icon {
+    font-size: 36px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .sec-title {
+    font-family: 'Fraunces', serif;
+    font-size: 28px;
+    font-weight: 900;
+    letter-spacing: -1px;
+    margin-bottom: 6px;
+  }
+  .sec-desc { font-size: 11px; color: var(--ink2); line-height: 1.8; max-width: 520px; }
+  .priority-badge {
+    display: inline-block;
+    font-size: 9px;
+    letter-spacing: 2px;
+    padding: 3px 8px;
+    margin-left: 10px;
+    vertical-align: middle;
+  }
+  .p-critical { background: #fde8e4; color: var(--accent); }
+  .p-high { background: #e4f0fd; color: var(--accent2); }
+  .p-medium { background: #e4fded; color: var(--accent3); }
+
+  /* Topic grid */
+  .topic-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  @media (max-width: 640px) { .topic-grid { grid-template-columns: 1fr; } }
+
+  .topic-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 20px;
+    position: relative;
+    transition: box-shadow 0.15s;
+  }
+  .topic-card:hover { box-shadow: 4px 4px 0 var(--border); }
+  .topic-card-accent { position: absolute; top: 0; left: 0; width: 3px; height: 100%; }
+
+  .topic-name {
+    font-family: 'Fraunces', serif;
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .topic-why { font-size: 10px; color: var(--muted); margin-bottom: 12px; line-height: 1.6; }
+  .concept-list { list-style: none; }
+  .concept-list li {
+    font-size: 11px;
+    color: var(--ink2);
+    padding: 5px 0;
+    border-bottom: 1px dashed var(--border);
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    line-height: 1.5;
+  }
+  .concept-list li:last-child { border-bottom: none; }
+  .concept-list li .marker { color: var(--accent); flex-shrink: 0; font-size: 10px; margin-top: 1px; }
+  .concept-list li .tag {
+    font-size: 9px;
+    padding: 1px 5px;
+    background: var(--tag-bg);
+    color: var(--muted);
+    border-radius: 1px;
+    flex-shrink: 0;
+  }
+  .concept-list li .tag.must { background: #fde8e4; color: var(--accent); }
+  .concept-list li .tag.good { background: #e4fded; color: var(--accent3); }
+
+  /* Code snippet */
+  .code-example {
+    background: #1a1612;
+    color: #e8e0d4;
+    font-size: 11px;
+    padding: 16px;
+    margin-top: 12px;
+    overflow-x: auto;
+    line-height: 1.7;
+  }
+  .code-example .cm { color: #7a7060; }
+  .code-example .kw { color: #c4472a; }
+  .code-example .fn { color: #b5860d; }
+  .code-example .st { color: #2aa85e; }
+  .code-example .nu { color: #2a7ac4; }
+
+  /* Full width card */
+  .topic-card-wide {
+    grid-column: 1 / -1;
+  }
+
+  /* Checklist style for "before you proceed" */
+  .checkpoint {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    padding: 20px 24px;
+    margin-top: 8px;
+  }
+  .checkpoint-title { font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  .checkpoint ul { list-style: none; }
+  .checkpoint ul li {
+    font-size: 11px;
+    color: var(--ink2);
+    padding: 5px 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    line-height: 1.6;
+  }
+  .checkpoint ul li::before { content: '☐'; color: var(--muted); flex-shrink: 0; }
+
+  /* Practice project mini */
+  .mini-project {
+    background: #1a1612;
+    color: #e8e0d4;
+    padding: 20px 24px;
+    margin-top: 16px;
+    grid-column: 1 / -1;
+  }
+  .mini-project-label { font-size: 9px; letter-spacing: 3px; color: var(--muted); margin-bottom: 8px; }
+  .mini-project-title { font-family: 'Fraunces', serif; font-size: 16px; font-weight: 600; margin-bottom: 6px; color: #f0e8dc; }
+  .mini-project-desc { font-size: 11px; color: #9a9080; line-height: 1.7; }
+
+  /* Divider */
+  .divider { height: 1px; background: var(--border); margin: 32px 0; }
+
+  /* Learning time estimate */
+  .time-strip {
+    display: flex;
+    gap: 0;
+    margin-bottom: 28px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .time-seg {
+    flex: 1;
+    padding: 10px 12px;
+    font-size: 10px;
+    text-align: center;
+    border-right: 1px solid var(--border);
+  }
+  .time-seg:last-child { border-right: none; }
+  .time-seg-val { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 900; display: block; color: var(--ink); }
+  .time-seg-label { color: var(--muted); font-size: 9px; letter-spacing: 1px; }
+  .time-seg.highlight-seg { background: var(--ink); }
+  .time-seg.highlight-seg .time-seg-val, .time-seg.highlight-seg .time-seg-label { color: var(--bg); }
+
+  /* Nav indicator */
+  .nav-area {
+    position: sticky;
+    top: 16px;
+    z-index: 10;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="eyebrow">Pre-LLM Foundations Guide</div>
+  <h1>Before you touch<br>an <em>LLM</em>,<br>master these.</h1>
+  <p class="subtitle">
+    You have JS/TS and intermediate Python. That's a solid base. But AI engineering demands specific Python patterns you probably haven't used yet — async, data wrangling, type safety, and API patterns. Here's exactly what to learn, why it matters for LLMs, and in what order.
+  </p>
+
+  <div class="level-check">
+    <div class="level-item"><div class="level-dot l-have"></div> You already have this</div>
+    <div class="level-item"><div class="level-dot l-build"></div> Must build this (Critical)</div>
+    <div class="level-item"><div class="level-dot l-touch"></div> Good to touch (Nice-to-have)</div>
+  </div>
+
+  <div class="cat-nav">
+    <button class="cat-btn active" onclick="showSection('python')">① Python Internals</button>
+    <button class="cat-btn" onclick="showSection('data')">② Data Handling</button>
+    <button class="cat-btn" onclick="showSection('async')">③ Async & APIs</button>
+    <button class="cat-btn" onclick="showSection('types')">④ Types & Validation</button>
+    <button class="cat-btn" onclick="showSection('math')">⑤ Math Foundations</button>
+    <button class="cat-btn" onclick="showSection('tools')">⑥ Dev Tools</button>
+  </div>
+
+  <!-- ① PYTHON INTERNALS -->
+  <div class="section active" id="sec-python">
+    <div class="sec-header">
+      <div class="sec-icon">🐍</div>
+      <div>
+        <div class="sec-title">Python Internals <span class="priority-badge p-critical">CRITICAL</span></div>
+        <div class="sec-desc">LLM code uses Python patterns that intermediate devs often skip — generators, decorators, context managers, and first-class functions. You'll hit these constantly in LangChain, HuggingFace, and FastAPI code.</div>
+      </div>
+    </div>
+
+    <div class="time-strip">
+      <div class="time-seg"><span class="time-seg-val">1</span><span class="time-seg-label">Week</span></div>
+      <div class="time-seg highlight-seg"><span class="time-seg-val">~15h</span><span class="time-seg-label">Total time</span></div>
+      <div class="time-seg"><span class="time-seg-val">2–3h</span><span class="time-seg-label">Daily</span></div>
+    </div>
+
+    <div class="topic-grid">
+      <div class="topic-card">
+        <div class="topic-card-accent" style="background:#c4472a;"></div>
+        <div class="topic-name">🔄 Generators & Iterators</div>
+        <div class="topic-why">LLMs stream tokens one-by-one. Every streaming response in Python uses generators. You must understand yield deeply.</div>
+        <ul class="concept-list">
+          <li><span class="marker">▸</span> <span><code>yield</code> vs <code>return</code> — how generators pause</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span><code>yield from</code> — delegating to sub-generators</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Generator expressions vs list comprehensions</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span><code>__iter__</code> and <code>__next__</code> protocol</span> <span class="tag good">GOOD</span></li>
+          <li><span class="marker">▸</span> <span>Lazy evaluation and memory efficiency</span> <span class="tag good">GOOD</span></li>
+        </ul>
+        <div class="code-example"><span class="cm"># LLM streaming pattern you'll use everywhere</span>
+<span class="kw">def</span> <span class="fn">stream_tokens</span>(response):
+    <span class="kw">for</span> chunk <span class="kw">in</span> response:
+        <span class="kw">yield</span> chunk.delta.content  <span class="cm"># ← generator!</span>
+
+<span class="kw">for</span> token <span class="kw">in</span> <span class="fn">stream_tokens</span>(llm_response):
+    <span class="fn">print</span>(token, end=<span class="st">""</span>, flush=<span class="kw">True</span>)</div>
+      </div>
+
+      <div class="topic-card">
+        <div class="topic-card-accent" style="background:#c4472a;"></div>
+        <div class="topic-name">🎨 Decorators & Closures</div>
+        <div class="topic-why">LangChain, FastAPI, and retry libraries are decorator-heavy. You'll constantly see @chain, @tool, @app.get — understanding them unlocks the whole ecosystem.</div>
+        <ul class="concept-list">
+          <li><span class="marker">▸</span> <span>First-class functions — functions as arguments</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Writing your own decorators with <code>functools.wraps</code></span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Decorators with arguments (factory pattern)</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Closures and <code>nonlocal</code> scope</span> <span class="tag good">GOOD</span></li>
+          <li><span class="marker">▸</span> <span>Class-based decorators</span> <span class="tag good">GOOD</span></li>
+        </ul>
+        <div class="code-example"><span class="cm"># LangChain uses this pattern extensively</span>
+<span class="kw">from</span> langchain_core.tools <span class="kw">import</span> tool
+
+<span class="kw">@tool</span>
+<span class="kw">def</span> <span class="fn">search_web</span>(query: str) -> str:
+    <span class="st">"""Search the internet for current info."""</span>
+    <span class="kw">return</span> <span class="fn">tavily_search</span>(query)  <span class="cm"># ← decorator wraps this</span></div>
+      </div>
+
+      <div class="topic-card">
+        <div class="topic-card-accent" style="background:#b5860d;"></div>
+        <div class="topic-name">📦 Context Managers</div>
+        <div class="topic-why">Database connections, file handles, HTTP sessions in AI apps all use context managers. FastAPI's lifespan, database sessions, and model loading all use with statements.</div>
+        <ul class="concept-list">
+          <li><span class="marker">▸</span> <span><code>__enter__</code> and <code>__exit__</code> protocol</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span><code>@contextmanager</code> decorator shortcut</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Async context managers (<code>async with</code>)</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Nested context managers and <code>contextlib.ExitStack</code></span> <span class="tag good">GOOD</span></li>
+        </ul>
+      </div>
+
+      <div class="topic-card">
+        <div class="topic-card-accent" style="background:#b5860d;"></div>
+        <div class="topic-name">🧬 OOP & Dataclasses</div>
+        <div class="topic-why">HuggingFace, LangChain, and Pydantic are class-heavy. You need to understand inheritance, dunder methods, and dataclasses to read and extend library code.</div>
+        <ul class="concept-list">
+          <li><span class="marker">▸</span> <span>Dunder/magic methods: <code>__repr__</code>, <code>__call__</code>, <code>__getitem__</code></span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span><code>@dataclass</code> — auto-generated boilerplate</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Properties: <code>@property</code> getter/setter</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Class methods vs static methods vs instance methods</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Abstract base classes (<code>ABC</code>)</span> <span class="tag good">GOOD</span></li>
+        </ul>
+      </div>
+
+      <div class="topic-card topic-card-wide">
+        <div class="topic-card-accent" style="background:#7a2ac4;"></div>
+        <div class="topic-name">⚙️ Python Environment & Packaging</div>
+        <div class="topic-why">AI projects have heavy dependency trees. A broken environment wastes hours. You must be confident managing Python environments before adding ML libraries.</div>
+        <ul class="concept-list" style="display:grid; grid-template-columns:1fr 1fr; gap:0 24px;">
+          <li><span class="marker">▸</span> <span><code>venv</code> vs <code>conda</code> vs <code>uv</code> — know uv, it's fast</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span><code>pyproject.toml</code> and <code>requirements.txt</code></span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>PYTHONPATH and relative imports</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Docker for Python AI apps</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Environment variables with <code>python-dotenv</code></span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Package extras: <code>pip install pkg[extra]</code></span> <span class="tag good">GOOD</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="checkpoint">
+      <div class="checkpoint-title">✓ Checkpoint — Can you do this?</div>
+      <ul>
+        <li>Write a generator that lazily reads a large file line by line</li>
+        <li>Write a retry decorator that retries a function N times on exception</li>
+        <li>Create a context manager that times a block of code</li>
+        <li>Write a dataclass with a custom <code>__post_init__</code> validator</li>
+        <li>Set up a fresh venv, install packages, and freeze requirements</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ② DATA HANDLING -->
+  <div class="section" id="sec-data">
+    <div class="sec-header">
+      <div class="sec-icon">📊</div>
+      <div>
+        <div class="sec-title">Data Handling <span class="priority-badge p-critical">CRITICAL</span></div>
+        <div class="sec-desc">LLMs consume and produce text data at scale. You'll constantly reshape, filter, clean, and batch data. NumPy and Pandas aren't optional — they're the plumbing of every AI pipeline.</div>
+      </div>
+    </div>
+
+    <div class="time-strip">
+      <div class="time-seg"><span class="time-seg-val">1.5</span><span class="time-seg-label">Weeks</span></div>
+      <div class="time-seg highlight-seg"><span class="time-seg-val">~20h</span><span class="time-seg-label">Total time</span></div>
+      <div class="time-seg"><span class="time-seg-val">Focus</span><span class="time-seg-label">Pandas first</span></div>
+    </div>
+
+    <div class="topic-grid">
+      <div class="topic-card">
+        <div class="topic-card-accent" style="background:#c4472a;"></div>
+        <div class="topic-name">🔢 NumPy Essentials</div>
+        <div class="topic-why">Embeddings ARE NumPy arrays. Every vector operation — similarity, distance, normalization — uses NumPy. You can't avoid it.</div>
+        <ul class="concept-list">
+          <li><span class="marker">▸</span> <span>ndarray creation: zeros, ones, random, arange</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Shape, reshape, transpose — critical for embedding dims</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Broadcasting rules — why shapes need to align</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Dot product, matrix multiply (<code>@</code> operator)</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Vectorized ops vs Python loops (10–100x speed)</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Boolean indexing and fancy indexing</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Cosine similarity from scratch (you'll do this often)</span> <span class="tag must">MUST</span></li>
+        </ul>
+        <div class="code-example"><span class="cm"># Cosine similarity — what vector DBs do under the hood</span>
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="kw">def</span> <span class="fn">cosine_sim</span>(a, b):
+    <span class="kw">return</span> np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+
+embedding_query  = np.array([<span class="nu">0.2</span>, <span class="nu">0.8</span>, <span class="nu">0.4</span>])
+embedding_chunk  = np.array([<span class="nu">0.3</span>, <span class="nu">0.7</span>, <span class="nu">0.5</span>])
+<span class="fn">print</span>(<span class="fn">cosine_sim</span>(embedding_query, embedding_chunk))  <span class="cm"># 0.993</span></div>
+      </div>
+
+      <div class="topic-card">
+        <div class="topic-card-accent" style="background:#c4472a;"></div>
+        <div class="topic-name">🐼 Pandas for AI Pipelines</div>
+        <div class="topic-why">Fine-tuning datasets, evaluation results, token counts, document metadata — all live in DataFrames. LangSmith exports data as CSVs. HuggingFace datasets extend Pandas patterns.</div>
+        <ul class="concept-list">
+          <li><span class="marker">▸</span> <span>DataFrame creation from JSON, CSV, dicts</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Filtering: boolean masks, <code>.query()</code></span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Applying functions: <code>.apply()</code>, <code>.map()</code></span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>GroupBy + aggregations (for token stats)</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Merging DataFrames — join eval results with source data</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Handling NaN / nulls in text data</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Exporting to JSON Lines format (LLM training format)</span> <span class="tag must">MUST</span></li>
+        </ul>
+      </div>
+
+      <div class="topic-card">
+        <div class="topic-card-accent" style="background:#2a7ac4;"></div>
+        <div class="topic-name">📝 JSON Mastery</div>
+        <div class="topic-why">LLMs speak JSON. Every API request/response, tool call, structured output, and fine-tuning dataset is JSON or JSON Lines. Deep JSON skills prevent silent bugs.</div>
+        <ul class="concept-list">
+          <li><span class="marker">▸</span> <span><code>json</code> module — dumps, loads, indent, sort_keys</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>JSON Lines (.jsonl) format — for training datasets</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Handling nested JSON — recursive access</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Partial JSON parsing (streaming LLM outputs)</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>JSON Schema — validating LLM structured outputs</span> <span class="tag good">GOOD</span></li>
+        </ul>
+      </div>
+
+      <div class="topic-card">
+        <div class="topic-card-accent" style="background:#2aa85e;"></div>
+        <div class="topic-name">✂️ Text Processing</div>
+        <div class="topic-why">Before text enters an LLM, it needs cleaning. Chunking, tokenization counting, regex extraction — these are daily tasks in AI engineering.</div>
+        <ul class="concept-list">
+          <li><span class="marker">▸</span> <span>String methods: split, strip, replace, join (fluently)</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Regex with <code>re</code> module — extract structured info from text</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Token counting with <code>tiktoken</code></span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Text splitting strategies for RAG chunks</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Unicode and encoding issues (<code>utf-8</code> vs <code>latin-1</code>)</span> <span class="tag good">GOOD</span></li>
+        </ul>
+      </div>
+
+      <div class="mini-project">
+        <div class="mini-project-label">⚡ PRACTICE PROJECT</div>
+        <div class="mini-project-title">Dataset Prep Pipeline</div>
+        <div class="mini-project-desc">Load a Wikipedia dump CSV, clean text (remove HTML, normalize whitespace, drop short articles), count tokens per article with tiktoken, split into chunks ≤500 tokens, export as .jsonl. This exact pattern is used before every fine-tuning run.</div>
+      </div>
+    </div>
+
+    <div class="checkpoint">
+      <div class="checkpoint-title">✓ Checkpoint — Can you do this?</div>
+      <ul>
+        <li>Calculate cosine similarity between two embedding arrays from scratch</li>
+        <li>Load a JSON file of Q&A pairs into Pandas, filter for quality, export as .jsonl</li>
+        <li>Count tokens in a list of documents and identify which exceed 8192 tokens</li>
+        <li>Write a regex that extracts all email addresses from a block of text</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ③ ASYNC & APIs -->
+  <div class="section" id="sec-async">
+    <div class="sec-header">
+      <div class="sec-icon">⚡</div>
+      <div>
+        <div class="sec-title">Async Python & HTTP <span class="priority-badge p-critical">CRITICAL</span></div>
+        <div class="sec-desc">This is the #1 area JS developers underestimate in Python. Async in Python is different from JS Promises in important ways. LLM API calls, streaming, and concurrent batch processing all require confident async code.</div>
+      </div>
+    </div>
+
+    <div class="time-strip">
+      <div class="time-seg"><span class="time-seg-val">1</span><span class="time-seg-label">Week</span></div>
+      <div class="time-seg highlight-seg"><span class="time-seg-val">~12h</span><span class="time-seg-label">Total time</span></div>
+      <div class="time-seg"><span class="time-seg-val">JS→Py</span><span class="time-seg-label">Translation focus</span></div>
+    </div>
+
+    <div class="topic-grid">
+      <div class="topic-card">
+        <div class="topic-card-accent" style="background:#c4472a;"></div>
+        <div class="topic-name">🔀 asyncio Deep Dive</div>
+        <div class="topic-why">Every modern Python AI library is async-first. FastAPI, HTTPX, LangChain async methods, streaming — all asyncio. Coming from JS, the mental model is similar but the mechanics differ.</div>
+        <ul class="concept-list">
+          <li><span class="marker">▸</span> <span>Event loop — how Python async differs from Node.js</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span><code>async def</code>, <code>await</code>, coroutines</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span><code>asyncio.gather()</code> — run multiple LLM calls in parallel</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span><code>asyncio.create_task()</code> — fire and forget</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Async generators (<code>async for</code>) — streaming tokens</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Timeouts with <code>asyncio.wait_for()</span></span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Semaphore for rate-limiting parallel API calls</span> <span class="tag must">MUST</span></li>
+        </ul>
+        <div class="code-example"><span class="cm"># Batch 10 LLM calls in parallel — 10x faster than sequential</span>
+<span class="kw">import</span> asyncio
+
+<span class="kw">async def</span> <span class="fn">call_llm</span>(prompt: str) -> str:
+    response = <span class="kw">await</span> client.messages.<span class="fn">create</span>(...)
+    <span class="kw">return</span> response.content[<span class="nu">0</span>].text
+
+<span class="kw">async def</span> <span class="fn">batch_process</span>(prompts: list[str]):
+    sem = asyncio.<span class="fn">Semaphore</span>(<span class="nu">5</span>)  <span class="cm"># max 5 concurrent</span>
+    <span class="kw">async def</span> <span class="fn">limited</span>(p): 
+        <span class="kw">async with</span> sem: <span class="kw">return await</span> <span class="fn">call_llm</span>(p)
+    <span class="kw">return await</span> asyncio.<span class="fn">gather</span>(*[<span class="fn">limited</span>(p) <span class="kw">for</span> p <span class="kw">in</span> prompts])</div>
+      </div>
+
+      <div class="topic-card">
+        <div class="topic-card-accent" style="background:#c4472a;"></div>
+        <div class="topic-name">🌐 HTTPX & Streaming HTTP</div>
+        <div class="topic-why">LLM APIs use Server-Sent Events for streaming. You need HTTPX (async-capable) not requests for modern AI apps. Understanding SSE is critical for building streaming UIs.</div>
+        <ul class="concept-list">
+          <li><span class="marker">▸</span> <span>HTTPX AsyncClient — async HTTP requests</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Streaming responses: <code>iter_lines()</code>, <code>iter_bytes()</code></span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Server-Sent Events (SSE) parsing</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Retry with exponential backoff (tenacity library)</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Connection pooling and session reuse</span> <span class="tag good">GOOD</span></li>
+        </ul>
+      </div>
+
+      <div class="topic-card">
+        <div class="topic-card-accent" style="background:#b5860d;"></div>
+        <div class="topic-name">🚀 FastAPI for AI</div>
+        <div class="topic-why">FastAPI is the standard for AI microservices. You'll build LLM endpoints, webhook receivers, and streaming APIs. Its async-first design is perfect for AI workloads.</div>
+        <ul class="concept-list">
+          <li><span class="marker">▸</span> <span>Route decorators: GET, POST, async handlers</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Request/Response models with Pydantic integration</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>StreamingResponse — stream LLM tokens over HTTP</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Background tasks for async processing</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Dependency injection — clean API key handling</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Lifespan events — load models on startup</span> <span class="tag good">GOOD</span></li>
+        </ul>
+      </div>
+
+      <div class="topic-card">
+        <div class="topic-card-accent" style="background:#2aa85e;"></div>
+        <div class="topic-name">🔁 Error Handling & Retries</div>
+        <div class="topic-why">LLM APIs rate-limit, timeout, and return 500s regularly. Production AI apps must handle this gracefully. A 429 without a retry will crash your app.</div>
+        <ul class="concept-list">
+          <li><span class="marker">▸</span> <span>Exception hierarchy — catching specific vs broad errors</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Tenacity library — <code>@retry</code> with exponential backoff</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Handling rate limits: 429 detection + wait logic</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Structured logging with <code>structlog</code> or <code>loguru</code></span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Circuit breaker pattern for cascading failures</span> <span class="tag good">GOOD</span></li>
+        </ul>
+      </div>
+
+      <div class="mini-project">
+        <div class="mini-project-label">⚡ PRACTICE PROJECT</div>
+        <div class="mini-project-title">Streaming FastAPI Endpoint</div>
+        <div class="mini-project-desc">Build a FastAPI endpoint <code>POST /chat</code> that accepts a prompt, calls the OpenAI API asynchronously, and streams the response token-by-token as SSE. Add rate limiting with asyncio.Semaphore and retry on 429 with tenacity. This is the core of every AI product backend.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ④ TYPES & VALIDATION -->
+  <div class="section" id="sec-types">
+    <div class="sec-header">
+      <div class="sec-icon">🔒</div>
+      <div>
+        <div class="sec-title">Type Safety & Validation <span class="priority-badge p-high">HIGH</span></div>
+        <div class="sec-desc">Coming from TypeScript, you'll love Pydantic — it's Python's Zod, but even more powerful. Structured outputs from LLMs must be validated. Pydantic is non-negotiable in modern AI engineering.</div>
+      </div>
+    </div>
+
+    <div class="time-strip">
+      <div class="time-seg"><span class="time-seg-val">0.5</span><span class="time-seg-label">Weeks</span></div>
+      <div class="time-seg highlight-seg"><span class="time-seg-val">~8h</span><span class="time-seg-label">Total time</span></div>
+      <div class="time-seg"><span class="time-seg-val">Fast</span><span class="time-seg-label">if you know Zod</span></div>
+    </div>
+
+    <div class="topic-grid">
+      <div class="topic-card">
+        <div class="topic-card-accent" style="background:#c4472a;"></div>
+        <div class="topic-name">📐 Python Type Hints</div>
+        <div class="topic-why">LLM library code is heavily typed. You need to read and write types fluently to understand error messages and write library-quality code.</div>
+        <ul class="concept-list">
+          <li><span class="marker">▸</span> <span>Built-in generics: <code>list[str]</code>, <code>dict[str, Any]</code></span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span><code>Optional[X]</code> = <code>X | None</code> — know both styles</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span><code>Union</code>, <code>Literal</code>, <code>TypedDict</code></span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span><code>Callable</code>, <code>Generator</code>, <code>AsyncGenerator</code> types</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>TypeVar for generics — reading library code</span> <span class="tag good">GOOD</span></li>
+          <li><span class="marker">▸</span> <span>Protocol — structural subtyping</span> <span class="tag good">GOOD</span></li>
+        </ul>
+      </div>
+
+      <div class="topic-card">
+        <div class="topic-card-accent" style="background:#c4472a;"></div>
+        <div class="topic-name">⚙️ Pydantic v2</div>
+        <div class="topic-why">This is Python's Zod. Every LLM structured output, API schema, and config in LangChain, FastAPI, and the Instructor library is a Pydantic model. Master it.</div>
+        <ul class="concept-list">
+          <li><span class="marker">▸</span> <span>BaseModel — defining schemas (= Zod z.object)</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Field validators: <code>@field_validator</code>, <code>@model_validator</code></span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Nested models — deep structured LLM output</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span><code>model_json_schema()</code> — send schema to LLM for structured output</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Custom types with <code>Annotated</code></span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Settings management with <code>pydantic-settings</code></span> <span class="tag must">MUST</span></li>
+        </ul>
+        <div class="code-example"><span class="cm"># LLM structured output — what Instructor library does</span>
+<span class="kw">from</span> pydantic <span class="kw">import</span> BaseModel, Field
+
+<span class="kw">class</span> <span class="fn">ExtractedInvoice</span>(BaseModel):
+    vendor: str
+    amount: float = Field(gt=<span class="nu">0</span>, description=<span class="st">"Total amount in USD"</span>)
+    date: str
+    line_items: list[str]
+
+<span class="cm"># Claude returns JSON → Pydantic validates + parses it</span>
+invoice = ExtractedInvoice.<span class="fn">model_validate_json</span>(llm_output)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑤ MATH FOUNDATIONS -->
+  <div class="section" id="sec-math">
+    <div class="sec-header">
+      <div class="sec-icon">∑</div>
+      <div>
+        <div class="sec-title">Math Foundations <span class="priority-badge p-medium">MEDIUM — CONCEPTUAL ONLY</span></div>
+        <div class="sec-desc">You don't need to derive backpropagation. But understanding vectors, probability, and a few key concepts will let you read AI papers, debug embedding issues, and make smarter architecture decisions.</div>
+      </div>
+    </div>
+
+    <div class="topic-grid">
+      <div class="topic-card">
+        <div class="topic-card-accent" style="background:#2a7ac4;"></div>
+        <div class="topic-name">↗ Linear Algebra (Practical)</div>
+        <div class="topic-why">Embeddings are vectors. Attention is matrix multiplication. You don't need to prove theorems — you need intuition for what these operations do.</div>
+        <ul class="concept-list">
+          <li><span class="marker">▸</span> <span>Vectors and what they represent in high-dimensional space</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Dot product — why it measures similarity</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Matrix multiplication — conceptual understanding</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Norms — L1, L2 distance between embeddings</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Dimensionality — why 1536-dim embeddings exist</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Softmax — what it does in attention (intuition only)</span> <span class="tag good">GOOD</span></li>
+        </ul>
+      </div>
+
+      <div class="topic-card">
+        <div class="topic-card-accent" style="background:#2a7ac4;"></div>
+        <div class="topic-name">🎲 Probability & Statistics</div>
+        <div class="topic-why">Temperature controls probability distributions. Perplexity measures model quality. Understanding basic probability makes you a smarter consumer of LLM outputs.</div>
+        <ul class="concept-list">
+          <li><span class="marker">▸</span> <span>Probability distributions — what softmax output means</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Temperature & sampling — why higher = more random</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Mean, median, variance — for eval metric analysis</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Log probability — what LLMs actually output internally</span> <span class="tag good">GOOD</span></li>
+          <li><span class="marker">▸</span> <span>Bayesian intuition — prior knowledge vs evidence</span> <span class="tag good">GOOD</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="checkpoint">
+      <div class="checkpoint-title">✓ Reality Check — Don't over-invest here</div>
+      <ul>
+        <li>Spend 5–7 hours max. Watch 3Blue1Brown's "Essence of Linear Algebra" series (YouTube, free)</li>
+        <li>You need intuition, not derivations. If you can explain cosine similarity in plain English, you're good</li>
+        <li>Return here after Phase 2 — context makes the math click much faster</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ⑥ DEV TOOLS -->
+  <div class="section" id="sec-tools">
+    <div class="sec-header">
+      <div class="sec-icon">🛠</div>
+      <div>
+        <div class="sec-title">Dev Tools & Workflow <span class="priority-badge p-high">HIGH</span></div>
+        <div class="sec-desc">Jupyter for experimentation, Docker for deployment, Git hygiene for collaboration. These aren't glamorous — they're what separates engineers who ship from those who stay local.</div>
+      </div>
+    </div>
+
+    <div class="topic-grid">
+      <div class="topic-card">
+        <div class="topic-card-accent" style="background:#b5860d;"></div>
+        <div class="topic-name">📓 Jupyter Notebooks</div>
+        <div class="topic-why">Every AI tutorial, HuggingFace example, and experiment uses notebooks. They're the REPL for AI work. You'll prototype in notebooks before writing production code.</div>
+        <ul class="concept-list">
+          <li><span class="marker">▸</span> <span>JupyterLab setup and keyboard shortcuts</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Magic commands: <code>%timeit</code>, <code>%matplotlib</code>, <code>%%bash</code></span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Kernel management — restart, interrupt, clear output</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>VS Code Jupyter integration (recommended over browser)</span> <span class="tag good">GOOD</span></li>
+          <li><span class="marker">▸</span> <span>Google Colab — free GPU for HuggingFace experiments</span> <span class="tag good">GOOD</span></li>
+        </ul>
+      </div>
+
+      <div class="topic-card">
+        <div class="topic-card-accent" style="background:#b5860d;"></div>
+        <div class="topic-name">🐳 Docker for AI Apps</div>
+        <div class="topic-why">AI apps have heavy dependencies (torch, transformers, etc.) that break on different machines. Docker makes "works on my machine" irrelevant. AWS ECS/Lambda deployments require Docker.</div>
+        <ul class="concept-list">
+          <li><span class="marker">▸</span> <span>Writing Dockerfiles for Python apps</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Multi-stage builds — keep images lean</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>docker-compose for local AI stack (app + DB + Redis)</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Pushing to ECR → deploying on ECS/Fargate</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>GPU-enabled Docker images for local model inference</span> <span class="tag good">GOOD</span></li>
+        </ul>
+      </div>
+
+      <div class="topic-card">
+        <div class="topic-card-accent" style="background:#2aa85e;"></div>
+        <div class="topic-name">🧪 Testing AI Code</div>
+        <div class="topic-why">AI apps have two kinds of bugs: code bugs and model behavior bugs. You need pytest for code and a basic eval framework for LLM outputs. Companies hiring AI engineers test for this.</div>
+        <ul class="concept-list">
+          <li><span class="marker">▸</span> <span>pytest — fixtures, parametrize, conftest.py</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Mocking LLM API calls with <code>unittest.mock</code></span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Writing LLM eval scripts — LLM-as-judge pattern</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Snapshot testing for prompt outputs</span> <span class="tag good">GOOD</span></li>
+          <li><span class="marker">▸</span> <span>CI with GitHub Actions for AI test suites</span> <span class="tag good">GOOD</span></li>
+        </ul>
+      </div>
+
+      <div class="topic-card">
+        <div class="topic-card-accent" style="background:#7a2ac4;"></div>
+        <div class="topic-name">📊 Visualization</div>
+        <div class="topic-why">You'll visualize token distributions, embedding clusters, eval scores, and latency metrics. Basic matplotlib / plotly is enough — you won't need D3.js here.</div>
+        <ul class="concept-list">
+          <li><span class="marker">▸</span> <span>Matplotlib basics — line, bar, scatter, histogram</span> <span class="tag must">MUST</span></li>
+          <li><span class="marker">▸</span> <span>Seaborn — prettier stats plots in 1 line</span> <span class="tag good">GOOD</span></li>
+          <li><span class="marker">▸</span> <span>Plotly — interactive charts (great for dashboards)</span> <span class="tag good">GOOD</span></li>
+          <li><span class="marker">▸</span> <span>UMAP / t-SNE — visualizing embedding clusters</span> <span class="tag good">GOOD</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Learning Order -->
+  <div style="background:var(--ink); color:var(--bg); padding:32px 28px; margin-top:8px;">
+    <div style="font-size:9px; letter-spacing:3px; color:var(--muted); margin-bottom:16px;">RECOMMENDED LEARNING ORDER</div>
+    <div style="font-family:'Fraunces',serif; font-size:18px; font-weight:900; margin-bottom:20px; color:#f0e8dc;">4–5 weeks before touching any LLM library</div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:12px;">
+      <div style="border:1px solid rgba(255,255,255,0.1); padding:12px;">
+        <div style="font-size:9px; color:var(--muted); letter-spacing:2px; margin-bottom:6px;">WEEK 1</div>
+        <div style="font-size:12px; color:#f0e8dc; line-height:1.6;">Python Internals<br><span style="color:var(--muted);">Generators, decorators, context managers, OOP</span></div>
+      </div>
+      <div style="border:1px solid rgba(255,255,255,0.1); padding:12px;">
+        <div style="font-size:9px; color:var(--muted); letter-spacing:2px; margin-bottom:6px;">WEEK 2</div>
+        <div style="font-size:12px; color:#f0e8dc; line-height:1.6;">Data Handling<br><span style="color:var(--muted);">NumPy, Pandas, JSON, text processing</span></div>
+      </div>
+      <div style="border:1px solid rgba(255,255,255,0.1); padding:12px;">
+        <div style="font-size:9px; color:var(--muted); letter-spacing:2px; margin-bottom:6px;">WEEK 3</div>
+        <div style="font-size:12px; color:#f0e8dc; line-height:1.6;">Async & FastAPI<br><span style="color:var(--muted);">asyncio, HTTPX, streaming, retries</span></div>
+      </div>
+      <div style="border:1px solid rgba(255,255,255,0.1); padding:12px;">
+        <div style="font-size:9px; color:var(--muted); letter-spacing:2px; margin-bottom:6px;">WEEK 4</div>
+        <div style="font-size:12px; color:#f0e8dc; line-height:1.6;">Types & Pydantic<br><span style="color:var(--muted);">Type hints, Pydantic v2, validation</span></div>
+      </div>
+      <div style="border:1px solid rgba(255,255,255,0.1); padding:12px;">
+        <div style="font-size:9px; color:var(--muted); letter-spacing:2px; margin-bottom:6px;">WEEK 5</div>
+        <div style="font-size:12px; color:#f0e8dc; line-height:1.6;">Tools + Math<br><span style="color:var(--muted);">Jupyter, Docker, pytest, linear algebra intuition</span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+</script>
+</body>
+</html>
